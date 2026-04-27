@@ -47,30 +47,39 @@ class DataLoader:
             print(f"{row['student_id']} | {row['age']} | {row['gender']} | {row['country']} | GPA: {row['GPA']}")
         print("-" * 30)
 
-
 class DataAnalyser:
     def __init__(self, students):
         self.students = students
         self.result = {}
 
     def analyse(self):
-        gpas = [float(student['GPA']) for student in self.students]
+        gpas = []
+        high_performers = 0
 
-        avg_gpa = round(sum(gpas) / len(gpas), 2)
-        max_gpa = max(gpas)
-        min_gpa = min(gpas)
-        high_performers = sum(1 for g in gpas if g > 3.5)
+        for student in self.students:
+            try:
+                gpa = float(student['GPA'])
+                gpas.append(gpa)
+                if gpa > 3.5:
+                    high_performers += 1
+            except ValueError:
+                print(f"Warning: could not convert value for student {student.get('student_id', '?')} — skipping row.")
+                continue
+
+        avg_gpa = round(sum(gpas) / len(gpas), 2) if gpas else 0
 
         self.result = {
-            'total_students': len(self.students),
-            'avg_gpa': avg_gpa,
-            'max_gpa': max_gpa,
-            'min_gpa': min_gpa,
-            'high_performers': high_performers
+            "analysis": "GPA Statistics",
+            "total_students": len(self.students),
+            "avg_gpa": avg_gpa,
+            "max_gpa": max(gpas) if gpas else 0,
+            "min_gpa": min(gpas) if gpas else 0,
+            "high_performers": high_performers
         }
         return self.result
 
     def print_results(self):
+        print("\n")
         print("-" * 30)
         print("GPA Analysis")
         print("-" * 30)
@@ -79,6 +88,22 @@ class DataAnalyser:
         print(f"Highest GPA : {self.result['max_gpa']}")
         print(f"Lowest GPA : {self.result['min_gpa']}")
         print(f"Students GPA > 3.5 : {self.result['high_performers']}")
+        print("-" * 30)
+
+    def filter_stats(self):
+        print("\n")
+        print("-" * 30)
+        print("Lambda / Map / Filter")
+        print("-" * 30)
+
+        high_gpa = list(filter(lambda s: float(s['GPA']) > 3.8, self.students))
+        print(f"Students with GPA > 3.8 : {len(high_gpa)}")
+
+        gpa_values = list(map(lambda s: float(s['GPA']), self.students))
+        print(f"GPA values (first 5) : {gpa_values[:5]}")
+
+        hard_workers = list(filter(lambda s: float(s['study_hours_per_day']) > 4, self.students))
+        print(f"Students studying > 4 hrs: {len(hard_workers)}")
         print("-" * 30)
 
 class ResultSaver:
@@ -109,6 +134,7 @@ dl.preview()
 analyser = DataAnalyser(dl.students)
 analyser.analyse()
 analyser.print_results()
+analyser.filter_stats()
 
 saver = ResultSaver(analyser.result, 'output/result.json')
 saver.save_json()
